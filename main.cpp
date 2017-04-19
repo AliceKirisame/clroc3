@@ -167,8 +167,6 @@ int main()
 
 	ImageImfor ii;
 
-	
-
 	vector<Mat> src;
 	vector<vector<Rect>> rects;
 	vector<Rect> logos;
@@ -182,6 +180,12 @@ int main()
 	String TemplateOut = ".\\template\\1";
 	String LogoOut = ".\\logos";
 	String fullPath;
+	String outText = ".\\out.txt";
+
+	LogoRecognizer lr;
+
+	fstream outFile;
+	outFile.open(outText, ios::out);
 
 	int c = 1;
 	//while (false)
@@ -245,16 +249,26 @@ int main()
 
 					for (int k = 0; k < logos.size(); ++k)
 					{
-						LogoRecognizer lr;
 
 						rectangle(g_tmpOut, logos[k], Scalar(0, 255, 0));
 
 						if (dScale != 0)
 						{
 							logos[k].x *= dScale;
+							if (logos[k].x > g_Backup.size().width)
+								logos[k].x = g_Backup.size().width-1;
+							
 							logos[k].y *= dScale;
+							if (logos[k].x > g_Backup.size().width)
+								logos[k].x = g_Backup.size().height-1;
+							
 							logos[k].width *= dScale;
+							if (logos[k].width + logos[k].x > g_Backup.size().width)
+								logos[k].width = g_Backup.size().width - logos[k].x;
+							
 							logos[k].height *= dScale;
+							if (logos[k].height + logos[k].y > g_Backup.size().height)
+								logos[k].height = g_Backup.size().height - logos[k].y;
 						}
 
 						Mat logoROI = g_Backup(logos[k]);
@@ -275,10 +289,22 @@ int main()
 				}
 			}
 			cout << "分数 " << bestSignificanScore << " ";
-			cout << names[fittestNum] << endl;
+			if (bestSignificanScore != 0)
+			{
+				cout << names[fittestNum] << endl;
+				outFile << names[fittestNum] << endl;
+			}
+			else
+			{
+				cout << "未知" << endl;
+				outFile << "未知" << endl;
+			}
+
 			imwrite(OutPath + "\\" + imgName, g_tmpOut);
 
 		}
+
+		outFile.close();
 
 		int key;
 		bool bBusy = true;

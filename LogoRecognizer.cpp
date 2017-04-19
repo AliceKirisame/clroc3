@@ -4,6 +4,9 @@
 
 LogoRecognizer::LogoRecognizer(bool debug)
 {
+	m_pvecDescriptors = NULL;
+	m_pvecKeyPoints = NULL;
+
 	m_bShowImfor = debug;
 
 	m_iLogoCategories = LOGO_CATEGORIES;
@@ -11,16 +14,84 @@ LogoRecognizer::LogoRecognizer(bool debug)
 	m_dSecondBestScore = 0;
 	m_iFittestNum = 0;
 	m_iSecondFittestNum = 0;
+
+	m_pvecDescriptors = new vector<Mat>[LOGO_CATEGORIES];
+	m_pvecKeyPoints = new vector<vector<KeyPoint>>[LOGO_CATEGORIES];
+
+	init();
 }
 
 
 LogoRecognizer::~LogoRecognizer()
 {
+	if (m_pvecDescriptors != NULL)
+	{
+		delete[] m_pvecDescriptors;
+		m_pvecDescriptors = NULL;
+	}
+
+	if (m_pvecKeyPoints != NULL)
+	{
+		delete[] m_pvecKeyPoints;
+		m_pvecKeyPoints = NULL;
+	}
+}
+
+void LogoRecognizer::reset()
+{
+	m_iLogoCategories = LOGO_CATEGORIES;
+	m_dBestScore = 0;
+	m_dSecondBestScore = 0;
+	m_iFittestNum = 0;
+	m_iSecondFittestNum = 0;
+
+	for (int i = 0; i < LOGO_CATEGORIES; i++)
+	{
+		m_mI[i].reset();
+	}
+}
+
+void LogoRecognizer::init()
+{
+	String imgName;
+	Ptr<Feature2D> f2d = xfeatures2d::SIFT::create();
+	
+	Mat img;
+	vector<KeyPoint> keypoints;
+	Mat descriptors;
+	
+	reset();
+
+	for (int i = 0; i < m_iLogoCategories; ++i)
+	{
+		stringstream ss;
+
+		ss << i;
+
+		m_ir.init(Paths::s_strTemplatePath + "\\" + ss.str());
+
+		while (m_ir.next(imgName))
+		{
+			img = imread(Paths::s_strTemplatePath + "\\" + ss.str() + "\\" + imgName);
+
+			if (img.channels() != 1)
+			{
+				cvtColor(img, img, COLOR_BGR2GRAY);
+			}
+		
+			f2d->detect(img, keypoints);
+			f2d->compute(img, keypoints, descriptors);
+
+			m_pvecKeyPoints[i].push_back(keypoints);
+			m_pvecDescriptors[i].push_back(descriptors);
+		}
+	}
 }
 
 void LogoRecognizer::matchLogo(const Mat & src)
 {
-	
+	reset();
+
 	String imgName;
 
 	Mat img1 = src;
@@ -40,16 +111,21 @@ void LogoRecognizer::matchLogo(const Mat & src)
 
 	for (int i = 0; i < m_iLogoCategories; ++i)
 	{
-		stringstream ss;
 
-		ss << i;
+		vector<Mat> vecDescriptors = m_pvecDescriptors[i];
+		vector<vector<KeyPoint>> vecKeyPoints = m_pvecKeyPoints[i];
 
-		m_ir.init(Paths::s_strTemplatePath + "\\" + ss.str());
+		vector<Mat>::iterator itDescriptor = vecDescriptors.begin();
+		vector<vector<KeyPoint>>::iterator itKeyPoints = vecKeyPoints.begin();
 
-		while (m_ir.next(imgName))
+		while (itDescriptor != vecDescriptors.end() && itKeyPoints != vecKeyPoints.end())
 		{
-			mI[i].total++;
+			descriptors2 = *itDescriptor;
+			keypoints2 = *itKeyPoints;
+
+			m_mI[i].total++;
 			
+			/*
 			img2 = imread(Paths::s_strTemplatePath + "\\" + ss.str()+ "\\" + imgName);
 			
 			if (img2.channels() != 1)
@@ -59,6 +135,8 @@ void LogoRecognizer::matchLogo(const Mat & src)
 
 			imshow("r1", img1);
 			imshow("r2", img2);
+			*/
+
 			/*
 			if (img1.size().width > img2.size().width)
 			{
@@ -75,13 +153,15 @@ void LogoRecognizer::matchLogo(const Mat & src)
 
 			//waitKey();
 
+			/*
 			double t = getTickCount();                               //当前滴答数  
 			
 			f2d->detect(img2, keypoints2);
 			f2d->compute(img2, keypoints2, descriptors2);
 
 			t = ((double)getTickCount() - t) / getTickFrequency();
-			
+			*/
+
 			//cout << "SIFT算法用时：" << t << "秒" << endl;
 			//cout << "图像1特征描述矩阵大小：" << descriptors1.size()
 			//	<< "，特征向量个数：" << descriptors1.rows << "，维数：" << descriptors1.cols << endl;
@@ -89,8 +169,8 @@ void LogoRecognizer::matchLogo(const Mat & src)
 			//	<< "，特征向量个数：" << descriptors2.rows << "，维数：" << descriptors2.cols << endl;
 
 			Mat img_keypoints1, img_keypoints2;
-			drawKeypoints(img1, keypoints1, img_keypoints1, Scalar::all(-1), 0);
-			drawKeypoints(img2, keypoints2, img_keypoints2, Scalar::all(-1), 0);
+			//drawKeypoints(img1, keypoints1, img_keypoints1, Scalar::all(-1), 0);
+			//drawKeypoints(img2, keypoints2, img_keypoints2, Scalar::all(-1), 0);
 			//imshow("Src1",img_keypoints1);  
 			//imshow("Src2",img_keypoints2);  
 			
@@ -128,20 +208,20 @@ void LogoRecognizer::matchLogo(const Mat & src)
 
 			if (goodMatches.size() > 0)
 			{
-				mI[i].matched++;
+				m_mI[i].matched++;
 
 				switch (goodMatches.size())
 				{
 				case 1:
-					mI[i].matched1++;
+					m_mI[i].matched1++;
 					break;
 
 				case 2:
-					mI[i].matched2++;
+					m_mI[i].matched2++;
 					break;
 
 				default:
-					mI[i].matched3++;
+					m_mI[i].matched3++;
 					break;
 				}
 			}
@@ -149,47 +229,51 @@ void LogoRecognizer::matchLogo(const Mat & src)
 
 			Mat img_matches;
 			
-			drawMatches(img1, keypoints1, img2, keypoints2, goodMatches, img_matches,         //红色连接的是匹配的特征点对，绿色是未匹配的特征点  
-				Scalar::all(-1)/*CV_RGB(255,0,0)*/, CV_RGB(0, 255, 0), Mat(), 2);
+			//drawMatches(img1, keypoints1, img2, keypoints2, goodMatches, img_matches,         //红色连接的是匹配的特征点对，绿色是未匹配的特征点  
+			//	Scalar::all(-1)/*CV_RGB(255,0,0)*/, CV_RGB(0, 255, 0), Mat(), 2);
 
-			imshow("MatchSIFT", img_matches);
+			//imshow("MatchSIFT", img_matches);
 			//waitKey(0);
+
+			++itDescriptor;
+			++itKeyPoints;
+
 		}
 
 
-		mI[i].mRate = (double)mI[i].matched / mI[i].total;
+		m_mI[i].mRate = (double)m_mI[i].matched / m_mI[i].total;
 
-		if (mI[i].matched != 0)
+		if (m_mI[i].matched != 0)
 		{
-			mI[i].m1Rate = (double)mI[i].matched1 / mI[i].matched;
-			mI[i].m2Rate = (double)mI[i].matched2 / mI[i].matched;
-			mI[i].m3Rate = (double)mI[i].matched3 / mI[i].matched;
+			m_mI[i].m1Rate = (double)m_mI[i].matched1 / m_mI[i].matched;
+			m_mI[i].m2Rate = (double)m_mI[i].matched2 / m_mI[i].matched;
+			m_mI[i].m3Rate = (double)m_mI[i].matched3 / m_mI[i].matched;
 		}
 
 		double scoreRate;
 
-		scoreRate = int(mI[i].mRate * 10) / 10.0;
+		scoreRate = int(m_mI[i].mRate * 10) / 10.0;
 
-		mI[i].score = 7 * mI[i].mRate + scoreRate * 0.5 * mI[i].m1Rate + scoreRate * 4 * mI[i].m2Rate + scoreRate * 3 * mI[i].m3Rate;
-		mI[i].num = i;
+		m_mI[i].score = 7 * m_mI[i].mRate + scoreRate * 0.5 * m_mI[i].m1Rate + scoreRate * 4 * m_mI[i].m2Rate + scoreRate * 3 * m_mI[i].m3Rate;
+		m_mI[i].num = i;
 		if (m_bShowImfor)
 		{
-			cout << "mRate " << mI[i].mRate;
-			cout << "  m1Rate " << mI[i].m1Rate;
-			cout << "  m2Rate " << mI[i].m2Rate;
-			cout << "  m3Rate " << mI[i].m3Rate << endl;
+			cout << "mRate " << m_mI[i].mRate;
+			cout << "  m1Rate " << m_mI[i].m1Rate;
+			cout << "  m2Rate " << m_mI[i].m2Rate;
+			cout << "  m3Rate " << m_mI[i].m3Rate << endl;
 
-			cout << "编号" << i << "分数" << mI[i].score << endl;
+			cout << "编号" << i << "分数" << m_mI[i].score << endl;
 		}
 
-		if (mI[i].score > m_dBestScore)
+		if (m_mI[i].score > m_dBestScore)
 		{
-			m_dBestScore = mI[i].score;
+			m_dBestScore = m_mI[i].score;
 			m_iFittestNum = i;
 		}
-		else if (mI[i].score > m_dSecondBestScore)
+		else if (m_mI[i].score > m_dSecondBestScore)
 		{
-			m_dSecondBestScore = mI[i].score;
+			m_dSecondBestScore = m_mI[i].score;
 			m_iSecondFittestNum = i;
 		}
 	}

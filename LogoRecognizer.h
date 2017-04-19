@@ -28,6 +28,20 @@ struct matchedInfo
 
 	int num;
 
+	void reset()
+	{
+		total = 0;
+		matched = 0;
+		matched1 = 0;
+		matched2 = 0;
+		matched3 = 0;
+
+		mRate = 0;
+		m1Rate = 0;
+		m2Rate = 0;
+		m3Rate = 0;
+	}
+
 	matchedInfo()
 	{
 		total = 0;
@@ -55,7 +69,10 @@ public:
 	inline int getFittestNum() { return m_iFittestNum; }
 
 private:
-	matchedInfo mI[3];
+	void init();
+	void reset();
+
+	matchedInfo m_mI[3];
 	int m_iFittestNum;
 	int m_iSecondFittestNum;
 
@@ -69,5 +86,8 @@ private:
 	static const int LOGO_CATEGORIES = 3;
 
 	bool m_bShowImfor;
+
+	vector<Mat> *m_pvecDescriptors;
+	vector<vector<KeyPoint>> *m_pvecKeyPoints;
 };
 

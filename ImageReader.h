@@ -29,5 +29,6 @@ private:
 	long m_file;
 	bool m_bShowImfor;
 
+	vector<String>::iterator m_itIndex;
 };
 

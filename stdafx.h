@@ -7,6 +7,7 @@
 #include <opencv2\xfeatures2d\nonfree.hpp>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 #include "ColorSearcher.h"
 #include "ContoursFinder.h"

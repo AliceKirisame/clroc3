@@ -41,6 +41,8 @@ void ImageReader::init(const String & path)
 
 	m_iIndex = 0;
 
+	m_itIndex = m_vecNames.begin();
+
 	return;
 
 }
@@ -50,8 +52,9 @@ bool ImageReader::next(String & imgName)
 	
 	if (m_iIndex < m_vecNames.size())
 	{
-		imgName = m_vecNames[m_iIndex];
+		imgName = *m_itIndex;
 
+		m_itIndex++;
 		m_iIndex++;
 
 		return true;
