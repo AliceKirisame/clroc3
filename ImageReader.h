@@ -20,6 +20,7 @@ public:
 
 	void init(const String& imgFolder);
 	bool next(String& imgName);
+	inline int getCount() { return m_vecNames.size(); };
 
 private:
 	String m_strFolder;

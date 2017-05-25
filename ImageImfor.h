@@ -15,8 +15,10 @@ public:
 	ImageImfor();
 	~ImageImfor();
 
-	void init(Mat &src);
+	void init(Mat &src, String imgName);
 	
-	Mat blurM, gradX, gradY, absX,absY, threshXM, threshXTZ, threshYM, threshYTZ, cannyM, cannyMX;
+	Mat blurM, gradX, gradY, absX,absY, threshXM, threshYM, threshTZ, cannyM, cannyMX,cannyMY;
+
+	String name;
 };
 

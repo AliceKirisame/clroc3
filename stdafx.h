@@ -16,3 +16,6 @@
 #include "LogoLocater.h"
 #include "ImageImfor.h"
 #include "LogoRecognizer.h"
+#include "NeuralNet.h"
+#include "Hog.h"
+#include "Svm.h"

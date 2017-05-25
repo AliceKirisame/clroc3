@@ -4,6 +4,7 @@
 
 LogoRecognizer::LogoRecognizer(bool debug)
 {
+	m_iMatchCount = 0;
 	m_pvecDescriptors = NULL;
 	m_pvecKeyPoints = NULL;
 
@@ -17,6 +18,7 @@ LogoRecognizer::LogoRecognizer(bool debug)
 
 	m_pvecDescriptors = new vector<Mat>[LOGO_CATEGORIES];
 	m_pvecKeyPoints = new vector<vector<KeyPoint>>[LOGO_CATEGORIES];
+	m_vecTempMats = new vector<Mat>[LOGO_CATEGORIES];
 
 	init();
 }
@@ -34,6 +36,12 @@ LogoRecognizer::~LogoRecognizer()
 	{
 		delete[] m_pvecKeyPoints;
 		m_pvecKeyPoints = NULL;
+	}
+
+	if (m_vecTempMats != NULL)
+	{
+		delete[] m_vecTempMats;
+		m_vecTempMats = NULL;
 	}
 }
 
@@ -74,21 +82,27 @@ void LogoRecognizer::init()
 		{
 			img = imread(Paths::s_strTemplatePath + "\\" + ss.str() + "\\" + imgName);
 
+			
+
 			if (img.channels() != 1)
 			{
 				cvtColor(img, img, COLOR_BGR2GRAY);
 			}
 		
+			GaussianBlur(img, img, Size(3, 3), 0, 0);
+			medianBlur(img, img, 3);
+
 			f2d->detect(img, keypoints);
 			f2d->compute(img, keypoints, descriptors);
 
 			m_pvecKeyPoints[i].push_back(keypoints);
 			m_pvecDescriptors[i].push_back(descriptors);
+			m_vecTempMats[i].push_back(img);
 		}
 	}
 }
 
-void LogoRecognizer::matchLogo(const Mat & src)
+void LogoRecognizer::matchLogo(const Mat & src, String imgname)
 {
 	reset();
 
@@ -100,11 +114,21 @@ void LogoRecognizer::matchLogo(const Mat & src)
 	Ptr<Feature2D> f2d = xfeatures2d::SIFT::create();
 	Mat descriptors1, descriptors2;
 
+	Mat img_matches;
+	Mat bestMatchedImg;
 
 	if (img1.channels() != 1)
 	{
 		cvtColor(img1, img1, COLOR_BGR2GRAY);
 	}
+
+	GaussianBlur(img1, img1, Size(3, 3), 0, 0);
+	medianBlur(img1, img1, 3);
+	
+
+	//imshow("th", img1);
+	//waitKey(0);
+
 	f2d->detect(img1, keypoints1);
 	f2d->compute(img1, keypoints1, descriptors1);
 
@@ -114,14 +138,17 @@ void LogoRecognizer::matchLogo(const Mat & src)
 
 		vector<Mat> vecDescriptors = m_pvecDescriptors[i];
 		vector<vector<KeyPoint>> vecKeyPoints = m_pvecKeyPoints[i];
+		vector<Mat> vecTemps = m_vecTempMats[i];
 
 		vector<Mat>::iterator itDescriptor = vecDescriptors.begin();
 		vector<vector<KeyPoint>>::iterator itKeyPoints = vecKeyPoints.begin();
+		vector<Mat>::iterator itTemp = vecTemps.begin();
 
-		while (itDescriptor != vecDescriptors.end() && itKeyPoints != vecKeyPoints.end())
+		while (itDescriptor != vecDescriptors.end() && itKeyPoints != vecKeyPoints.end() && itTemp != vecTemps.end())
 		{
 			descriptors2 = *itDescriptor;
 			keypoints2 = *itKeyPoints;
+			img2 = *itTemp;
 
 			m_mI[i].total++;
 			
@@ -168,7 +195,7 @@ void LogoRecognizer::matchLogo(const Mat & src)
 			//cout << "图像2特征描述矩阵大小：" << descriptors2.size()
 			//	<< "，特征向量个数：" << descriptors2.rows << "，维数：" << descriptors2.cols << endl;
 
-			Mat img_keypoints1, img_keypoints2;
+			//Mat img_keypoints1, img_keypoints2;
 			//drawKeypoints(img1, keypoints1, img_keypoints1, Scalar::all(-1), 0);
 			//drawKeypoints(img2, keypoints2, img_keypoints2, Scalar::all(-1), 0);
 			//imshow("Src1",img_keypoints1);  
@@ -193,51 +220,68 @@ void LogoRecognizer::matchLogo(const Mat & src)
 			
 			//cout << "最大距离：" << max_dist << endl;
 			//cout << "最小距离：" << min_dist << endl;
-
+			set<int> ps1, ps2;
+			double matchPointsNumRate;
 			
 			vector<DMatch> goodMatches;                               //筛选出较好的匹配点  
 			for (int i = 0; i<matches.size(); i++)
 			{
-				if (matches[i].distance < 0.46 * max_dist)
+				if (matches[i].distance < 0.42 * max_dist)
 				{
 					goodMatches.push_back(matches[i]);
+					ps1.insert(matches[i].trainIdx);
+					ps2.insert(matches[i].queryIdx);
 				}
 			}
-			
+			matchPointsNumRate =  static_cast<double>(ps1.size()) / ps2.size();
 			//cout << "goodMatch个数：" << goodMatches.size() << endl;
+
+			if (matchPointsNumRate < 0.91 || matchPointsNumRate > 1.1)
+			{
+				goodMatches.clear();
+				printf("1");
+			}
 
 			if (goodMatches.size() > 0)
 			{
-				m_mI[i].matched++;
-
 				switch (goodMatches.size())
 				{
 				case 1:
 					m_mI[i].matched1++;
+					m_mI[i].matched+=0.5;
 					break;
 
 				case 2:
 					m_mI[i].matched2++;
+					m_mI[i].matched++;
 					break;
 
 				default:
 					m_mI[i].matched3++;
+					m_mI[i].matched++;
 					break;
 				}
 			}
-
-
-			Mat img_matches;
 			
-			//drawMatches(img1, keypoints1, img2, keypoints2, goodMatches, img_matches,         //红色连接的是匹配的特征点对，绿色是未匹配的特征点  
-			//	Scalar::all(-1)/*CV_RGB(255,0,0)*/, CV_RGB(0, 255, 0), Mat(), 2);
+			drawMatches(img1, keypoints1, img2, keypoints2, goodMatches, img_matches,         //红色连接的是匹配的特征点对，绿色是未匹配的特征点  
+				Scalar::all(-1)/*CV_RGB(255,0,0)*/, CV_RGB(0, 255, 0), Mat(), 2);
 
 			//imshow("MatchSIFT", img_matches);
 			//waitKey(0);
+			stringstream ss;
+			ss << m_iMatchCount;
+			String outPath = ".//matched//";
 
+			outPath += imgname + ss.str();
+			outPath += ".jpg";
+			
+			if(goodMatches.size() > 0)
+				//imwrite(outPath, img_matches);
+
+			++m_iMatchCount;
 			++itDescriptor;
 			++itKeyPoints;
-
+			++itTemp;
 		}
 
 
@@ -254,7 +298,9 @@ void LogoRecognizer::matchLogo(const Mat & src)
 
 		scoreRate = int(m_mI[i].mRate * 10) / 10.0;
 
-		m_mI[i].score = 7 * m_mI[i].mRate + scoreRate * 0.5 * m_mI[i].m1Rate + scoreRate * 4 * m_mI[i].m2Rate + scoreRate * 3 * m_mI[i].m3Rate;
+		//m_mI[i].score = 7 * m_mI[i].mRate + scoreRate * 0.5 * m_mI[i].m1Rate + scoreRate * 4 * m_mI[i].m2Rate + scoreRate * 3 * m_mI[i].m3Rate;
+		m_mI[i].score = m_mI[i].matched1 + 2 * m_mI[i].matched2 + 3 * m_mI[i].matched3;
+
 		m_mI[i].num = i;
 		if (m_bShowImfor)
 		{

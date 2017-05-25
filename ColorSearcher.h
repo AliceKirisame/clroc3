@@ -10,6 +10,8 @@
 using namespace cv;
 using namespace std;
 
+enum MODE {USE_HSV, USE_RGB};
+
 class ColorSearcher
 {
 public:
@@ -23,6 +25,8 @@ public:
 	static const int BLUE = 120;
 
 private:
+	enum MODE m_mode;
+
 	int m_color;
 
 	int m_iHUpDiff;

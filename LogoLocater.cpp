@@ -15,6 +15,8 @@ LogoLocater::~LogoLocater()
 
 vector<Rect> LogoLocater::logoLocate(const ImageImfor & ii, const Rect & plateRc)
 {
+	stringstream ss;
+	stringstream ss1;
 	Rect rc;
 
 	rc.x = plateRc.x;
@@ -58,38 +60,48 @@ vector<Rect> LogoLocater::logoLocate(const ImageImfor & ii, const Rect & plateRc
 	
 	(xY[xY.size() - 1] < yX[yX.size() - 1]) ? (usedVec = xY, imgROI = ii.cannyMX(rc),usedFlag=true) : (usedVec = yX, usedFlag = false);
 
-	stringstream ss;
-	stringstream ss1;
-	static int c=0;
+	static int c = 0;
 
+	ss1 << ".\\locateProcess\\canny sobel before\\";
+	ss1 << c << " m";
+	ss1 << ii.name;
+
+	imwrite(ss1.str(), imgROI);
+	
 	if (usedFlag)
 	{
-		ss1 << ".\\logo\\";
-		ss1 << c;
-		ss1 << "m.jpg";
-
-		imwrite(ss1.str(), ii.blurM(rc));
-
 		morphologyEx(imgROI, imgROI, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(15, 1)));
-
-		ss << ".\\logo\\";
-		ss << c;
-		ss << ".jpg";
-		
-		c++;
 
 		erode(imgROI, imgROI, getStructuringElement(MORPH_RECT, Size(1, 3)));
 		dilate(imgROI, imgROI, getStructuringElement(MORPH_RECT, Size(1, 3)));
 		
-		morphologyEx(imgROI, imgROI, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(15, 1))); imwrite(ss.str(), imgROI);
+		morphologyEx(imgROI, imgROI, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(10, 1))); 
+		
+		erode(imgROI, imgROI, getStructuringElement(MORPH_RECT, Size(1, 5)));
+		dilate(imgROI, imgROI, getStructuringElement(MORPH_RECT, Size(1, 5)));
+
+		//morphologyEx(imgROI, imgROI, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(1, 5)));
 	}
 	else
 	{
 		morphologyEx(imgROI, imgROI, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(15, 1)));
+
 		erode(imgROI, imgROI, getStructuringElement(MORPH_RECT, Size(3, 1)));
 		dilate(imgROI, imgROI, getStructuringElement(MORPH_RECT, Size(3, 1)));
-		morphologyEx(imgROI, imgROI, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(15, 1)));
+
+		morphologyEx(imgROI, imgROI, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(10, 1)));
+
+		erode(imgROI, imgROI, getStructuringElement(MORPH_RECT, Size(5, 1)));
+		dilate(imgROI, imgROI, getStructuringElement(MORPH_RECT, Size(5, 1)));
 	}
+
+	ss << ".\\locateProcess\\close\\";
+	ss << c << " " << usedFlag << " ";
+	ss << ii.name;
+
+	c++;
+
+	imwrite(ss.str(), imgROI);
 
 	ContoursFinder cf;
 	vector<Rect> logos;
@@ -113,11 +125,11 @@ vector<Rect> LogoLocater::logoLocate(const ImageImfor & ii, const Rect & plateRc
 		if (logos[i].y < 0)
 			logos[i].y = 0;
 
-		logos[i].width += 7;
+		logos[i].width += 6;
 		if (logos[i].width > ii.blurM.size().width)
 			logos[i].y = ii.blurM.size().width;
 
-		logos[i].height += 7;
+		logos[i].height += 6;
 		if (logos[i].height > ii.blurM.size().height)
 			logos[i].y = ii.blurM.size().height;
 	}
@@ -155,6 +167,7 @@ vector<Rect> LogoLocater::logoLocate(const ImageImfor & ii, const Rect & plateRc
 
 void LogoLocater::mapXY(Mat & src, vector<int> &X, vector<int> &Y)
 {
+	//XΪx
 	X.clear();
 	Y.clear();
 	int colN = src.cols*src.channels();       

@@ -1,7 +1,11 @@
 #pragma once
 
+#define LOGO_CATEGORIES  7
+
 #include <iostream>
 #include <sstream>
+
+#include <set>
 
 #include <opencv2\opencv.hpp>
 #include <opencv2\xfeatures2d\nonfree.hpp>
@@ -63,7 +67,7 @@ public:
 	LogoRecognizer(bool debug = false);
 	~LogoRecognizer();
 
-	void matchLogo(const Mat & src);
+	void matchLogo(const Mat & src, String imgname);
 
 	inline double getSignificanceScore(){return m_dSignificanceScore; }
 	inline int getFittestNum() { return m_iFittestNum; }
@@ -72,7 +76,7 @@ private:
 	void init();
 	void reset();
 
-	matchedInfo m_mI[3];
+	matchedInfo m_mI[LOGO_CATEGORIES];
 	int m_iFittestNum;
 	int m_iSecondFittestNum;
 
@@ -83,11 +87,14 @@ private:
 
 	int m_iLogoCategories;
 	ImageReader m_ir;
-	static const int LOGO_CATEGORIES = 3;
+	
 
 	bool m_bShowImfor;
 
 	vector<Mat> *m_pvecDescriptors;
 	vector<vector<KeyPoint>> *m_pvecKeyPoints;
+	vector<Mat> *m_vecTempMats;
+
+	int m_iMatchCount;
 };
 

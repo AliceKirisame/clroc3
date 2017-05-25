@@ -10,8 +10,8 @@ ImageImfor::ImageImfor()
 	absX = Mat(); 
 	threshXM = Mat();
 	threshYM = Mat();
-	threshXTZ = Mat();
-	threshYTZ = Mat();
+	threshTZ = Mat();
+
 }
 
 
@@ -19,13 +19,17 @@ ImageImfor::~ImageImfor()
 {
 }
 
-void ImageImfor::init(Mat & src)
+void ImageImfor::init(Mat & src, String imgname)
 {
-	GaussianBlur(src, blurM, Size(7, 7), 0, 0);
+	name = imgname;
+
+	GaussianBlur(src, blurM, Size(3, 3), 0, 0);
 
 	cvtColor(blurM, blurM, COLOR_RGB2GRAY);
 
 	//equalizeHist(blurM, blurM);
+
+	threshold(blurM, threshTZ, 50, 255, THRESH_TOZERO);
 
 	Canny(blurM, cannyM, 150, 100);
 
@@ -43,9 +47,7 @@ void ImageImfor::init(Mat & src)
 	//equalizeHist(absX, absX);
 
 	threshold(absX, threshXM, 50, 255, THRESH_BINARY);
-	threshold(absX, threshXTZ, 80, 255, THRESH_TOZERO);
 
 	threshold(absY, threshYM, 50, 255, THRESH_BINARY);
-	threshold(absY, threshYTZ, 80, 255, THRESH_TOZERO);
 	
 }

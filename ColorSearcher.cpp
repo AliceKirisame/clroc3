@@ -23,6 +23,7 @@ ColorSearcher::ColorSearcher()
 	m_iVMax = DEF_V_MAX;
 	m_iVMin = DEF_V_MIN;
 	m_color = BLUE;
+	m_mode = USE_HSV;
 }
 
 ColorSearcher::ColorSearcher(int color, int hup, int hdown, int smin, int vmin, int smax, int vmax) :m_iHDownDiff(DEF_H_DOWN_DIFF),
@@ -31,7 +32,8 @@ ColorSearcher::ColorSearcher(int color, int hup, int hdown, int smin, int vmin, 
 																								m_iSMin(DEF_S_MIN),
 																								m_iVMax(DEF_V_MAX),
 																								m_iVMin(DEF_V_MIN),
-																								m_color(color)
+																								m_color(color),
+																								m_mode(USE_HSV)
 {
 }
 
@@ -63,29 +65,81 @@ void ColorSearcher::searchColor(const Mat & src, Mat & colorArea, bool showProce
 		core_size = 80;
 	}
 
-	cvtColor(src, hsv, COLOR_BGR2HSV);
+	int rowN = src.rows;
+	int colN = src.cols * src.channels();
 
 	colorArea = Mat::zeros(src.rows, src.cols, CV_8UC1);
 
-	int rowN = hsv.rows;
-	int colN = hsv.cols * hsv.channels();
-
-	for (int i = 0; i < rowN; i++)
+	switch (m_mode)
 	{
-		uchar *data = hsv.ptr<uchar>(i);
-		uchar *result = colorArea.ptr<uchar>(i);
-		
-		int h, s, v;
+	case USE_HSV:
 
-		for (int j = 0,k=0; j < colN; j+=3,k++)
+		cvtColor(src, hsv, COLOR_BGR2HSV);
+
+		for (int i = 0; i < rowN; i++)
 		{
-			h = data[j];
-			s = data[j + 1];
-			v = data[j + 2];
+			uchar *data = hsv.ptr<uchar>(i);
+			uchar *result = colorArea.ptr<uchar>(i);
 
-			if (h <= m_color + m_iHUpDiff && h >= m_color - m_iHDownDiff)
+			int h, s, v;
+
+			for (int j = 0, k = 0; j < colN; j += 3, k++)
 			{
-				if (s <= m_iSMax && s >= m_iSMin && v <= m_iVMax && v >= m_iVMin)
+				h = data[j];
+				s = data[j + 1];
+				v = data[j + 2];
+
+				if (h <= m_color + m_iHUpDiff && h >= m_color - m_iHDownDiff)
+				{
+					if (s <= m_iSMax && s >= m_iSMin && v <= m_iVMax && v >= m_iVMin)
+					{
+						result[k] = 255;
+					}
+					else
+					{
+						result[k] = 0;
+					}
+				}
+			}
+		}
+
+		if (showProcess)
+			imshow("color1", colorArea);
+
+		morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, core_size / 10)));
+
+		erode(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(1, core_size / 5)));
+		dilate(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(1, core_size / 5)));
+
+		//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(1, core_size+2/2)));
+
+		if (showProcess)
+			imshow("color2", colorArea);
+
+		//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, 1)));
+		//erode(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(core_size / 2, 1)));
+		//dilate(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(core_size / 2, 1)));
+
+		//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, 1)));
+
+		break;
+
+
+	case USE_RGB:
+		for (int i = 0; i < rowN; i++)
+		{
+			const uchar *data = src.ptr<uchar>(i);
+			uchar *result = colorArea.ptr<uchar>(i);
+
+			int b, g, r;
+
+			for (int j = 0, k = 0; j < colN; j += 3, k++)
+			{
+				b = data[j];
+				g = data[j + 1];
+				r = data[j + 2];
+
+				if ((b - g) / (double)b > 0.25 && (b - r) / (double)b > 0.25)
 				{
 					result[k] = 255;
 				}
@@ -93,26 +147,34 @@ void ColorSearcher::searchColor(const Mat & src, Mat & colorArea, bool showProce
 				{
 					result[k] = 0;
 				}
+
 			}
 		}
+
+		if (showProcess)
+			imshow("color1", colorArea);
+
+		morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, core_size / 10)));
+
+		erode(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(1, core_size / 5)));
+		dilate(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(1, core_size / 5)));
+
+		//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(1, core_size+2/2)));
+
+		if (showProcess)
+			imshow("color2", colorArea);
+
+		//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, 1)));
+		//erode(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(core_size / 2, 1)));
+		//dilate(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(core_size / 2, 1)));
+
+		//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, 1)));
+
+		break;
+
+	default:
+		break;
 	}
 
-	if (showProcess)
-		imshow("color1",colorArea);
-
-	morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, core_size/10)));
-
-	erode(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(1, core_size/5)));
-	dilate(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(1, core_size/5)));
-
-	//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(1, core_size+2/2)));
-
-	if (showProcess)
-		imshow("color2", colorArea);
-
-	//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, 1)));
-	//erode(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(core_size / 2, 1)));
-	//dilate(colorArea, colorArea, getStructuringElement(MORPH_RECT, Size(core_size / 2, 1)));
-
-	//morphologyEx(colorArea, colorArea, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(core_size, 1)));
+	
 }
