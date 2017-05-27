@@ -179,7 +179,7 @@ int main()
 					{
 						imwrite(String("svmlogos") + "\\" + ss.str(), logoROI);
 						cout << names[int(response)] << endl;
-						outFile << ss.str() << " " << names[int(response)] << endl;
+						outFile << "	" << ss.str() << " " << names[int(response)] << endl;
 
 						if (imgName[0] - '0' == response + 1 && !flag)
 						{

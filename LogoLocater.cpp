@@ -64,9 +64,38 @@ vector<Rect> LogoLocater::logoLocate(const ImageImfor & ii, const Rect & plateRc
 
 	ss1 << ".\\locateProcess\\canny sobel before\\";
 	ss1 << c << " m";
-	ss1 << ii.name;
 
-	imwrite(ss1.str(), imgROI);
+	imwrite(ss1.str() + ii.name, imgROI);
+
+	for (int i = 0; i < imgROI.rows; i++)
+	{
+		for (int j = 0; j < imgROI.cols; j++)
+		{
+			if (imgROI.at<uchar>(i, j) != 0)
+			{
+				int nearCount = 0;
+
+				for (int k = -2; k < 3; k++)
+				{
+					for (int n = -2; n < 3; n++)
+					{
+						if (i + k >= 0 && i + k < imgROI.rows && j + n >= 0 && j + n < imgROI.cols)
+						{
+							nearCount += int(imgROI.at<uchar>(i + k, j + n) > 30);
+						}
+					}
+				}
+
+				if (nearCount <= 4)
+				{
+					imgROI.at<uchar>(i, j) = 0;
+				}
+			}
+		}
+	}
+
+	ss1 << "c";
+	imwrite(ss1.str() + ii.name, imgROI);
 	
 	if (usedFlag)
 	{

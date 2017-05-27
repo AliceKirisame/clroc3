@@ -3,7 +3,7 @@
 
 
 ContoursFinder::ContoursFinder():
-	ELLIPSE_A_DIV(6.0), ELLIPSE_B_DIV(4.0), MIN_PLATE_AREA(900)
+	ELLIPSE_A_DIV(6.0), ELLIPSE_B_DIV(4.0), MIN_PLATE_AREA(750)
 {
 }
 
@@ -65,28 +65,28 @@ void ContoursFinder::findRect(std::vector<Mat>& src, std::vector<vector<Rect>>& 
 		minRect.resize(m_contours.size());
 		g_hull.resize(m_contours.size());
 
-		for (int i = 0; i < m_contours.size(); i++)
+		for (int j = 0; j < m_contours.size(); j++)
 		{
-			approxPolyDP(Mat(m_contours[i]), contours_poly[i], 3, false);
+			//approxPolyDP(Mat(m_contours[i]), contours_poly[i], 3, false);
 
-			boundRect[i] = boundingRect(Mat(m_contours[i]));
+			boundRect[j] = boundingRect(Mat(m_contours[j]));
 
-			minEnclosingCircle(m_contours[i], center[i], radius[i]);
+			//minEnclosingCircle(m_contours[i], center[i], radius[i]);
 
-			minRect[i] = minAreaRect(Mat(m_contours[i]));
+			minRect[j] = minAreaRect(Mat(m_contours[j]));
 
-			convexHull(m_contours[i], g_hull[i], true);
+			//convexHull(m_contours[i], g_hull[i], true);
 		}
 
 
 
 
 
-		for (int i = 0; i < m_contours.size(); i++)
+		for (int j = 0; j < m_contours.size(); j++)
 		{
-			double conArea = contourArea(m_contours[i]);
-			double recArea = minRect[i].size.area();
-			double hullArea = contourArea(g_hull[i]);
+			double conArea = contourArea(m_contours[j]);
+			double recArea = minRect[j].size.area();
+			//double hullArea = contourArea(g_hull[i]);
 			Rect nowRc;
 
 			//if (abs(recArea - hullArea) < recArea / 5 && hullArea > MIN_PLATE_AREA)
@@ -98,22 +98,22 @@ void ContoursFinder::findRect(std::vector<Mat>& src, std::vector<vector<Rect>>& 
 				//{
 				//line(g_tmpOut, g_hull[i][j], g_hull[i][(j + 1) % g_hull[i].size()], Scalar(0, 255, 0));
 				//}
-				nowRc = boundRect[i];
+				nowRc = boundRect[j];
 
 				if (double(nowRc.width) / nowRc.height >= rmin && double(nowRc.width) / nowRc.height <= rmax)
-					if(nowRc.width < tmpMat.cols/2)
-						m_rectContoursNum.push_back(i);
+					if (nowRc.width < tmpMat.cols / 2)
+						rects[i].push_back(nowRc);
+						//m_rectContoursNum.push_back(i);
 			}
 		}
 
 
-
+		/*
 		for (int j = 0; j < m_rectContoursNum.size(); j++)
 		{
 			rects[i].push_back(boundRect[m_rectContoursNum[j]]);
 		}
-
-
+		*/
 	}
 }
 
